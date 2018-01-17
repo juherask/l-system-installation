@@ -21,19 +21,22 @@ VERY_GREEN = (50,225,50)
 
 POT_JITTER_PREVENTION = 3
 
-MAX_WIND_STRENGTH = 5
-MAX_ANGLE = 120
+MAX_WIND_STRENGTH = 10
+MAX_ANGLE = 210
 MAX_SIZE = 500  
 MAX_ITERATIONS_TIMES = 1.5 
 
 running = False
-try:
-    port = '/dev/ttyUSB0'
-    baud = 115200
-    serial_port = serial.Serial(port, baud, timeout=0.01)
-except:
-    print "No serial connection to", port
-    serial_port = None
+
+def open_serial():
+    try:
+        port = '/dev/ttyUSB0'
+        baud = 9600
+        serial_port = serial.Serial(port, baud, timeout=0.01)
+    except:
+        print "No serial connection to", port
+        serial_port = None
+    return serial_port
 
 process_cmd = 0
 parameter_values = [512]*4
@@ -48,8 +51,11 @@ def read_from_port(ser):
         while running:
             cmd = ser.read().decode()
             if cmd == "n" or cmd == "u":
-                reading = ser.readline().decode()
-                
+                reading = ""
+                readchr = ""
+                while readchr!="\n": 
+                    readchr = ser.read().decode()
+                    reading+=readchr
                 if process_cmd==0:
                     parameter_values = [int(r) for r in reading[1:].split(";")]
                     process_cmd = ord(cmd)
@@ -67,8 +73,8 @@ def get_predefined_system(system_nbr):
     if system_nbr==1:
         # Pythagoras Tree
         rules = OrderedDict([
-          ("F","FF"),
-          ("X","F<+X>-X")])
+          ("X","F<+X>-X"),
+          ("F","FF")])
         start = "X"
         size = 7
         iterations = 6
@@ -107,8 +113,8 @@ def get_predefined_system(system_nbr):
         # Tree D
         start = "X"
         rules = OrderedDict([
-            ("F","FF"),
-            ("X","F<+X>F<-X>+X")])
+            ("X","F<+X>F<-X>+X"),
+            ("F","FF")])
         size = 2
         iterations = 7
     
@@ -116,8 +122,8 @@ def get_predefined_system(system_nbr):
         # Tree E
         start = "X"
         rules = OrderedDict([
-            ("F","FF"),
-            ("X","F<+X><-X>FX")])
+            ("X","F<+X><-X>FX"),
+            ("F","FF")])
         size = 2
         iterations = 7
         
@@ -216,6 +222,7 @@ def interactive_display(predefined_system_number):
     global parameter_string, process_cmd, running
         
     # Start a thread that reads physical controls (over serial)
+    serial_port = open_serial()
     running = True
     thread = threading.Thread(target=read_from_port, args=(serial_port,))
     thread.start()
@@ -256,6 +263,14 @@ def interactive_display(predefined_system_number):
                 if ev.key == K_q or ev.key == K_ESCAPE:
                     running = False
                     sys.exit()
+                if ev.key == K_s:
+                    running = False
+                    thread.join()
+                    serial_port.close()
+                    serial_port=open_serial()
+                    running = True
+                    thread = threading.Thread(target=read_from_port, args=(serial_port,))
+                    thread.start()                     
                 if ev.key == K_m:
                     mrf = open("manual_rules.txt", "r")
                     first_line = True
