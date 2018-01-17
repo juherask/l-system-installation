@@ -11,7 +11,7 @@ float moving_averages[4]={0.0f,0.0f,0.0f,0.0f};
 bool button_down = false;
 bool  print_new_values = false;
 
-int loop_counter = 0;
+int loop_counter = 1;
 int i=0;
 int j=0;
 int val=0;
@@ -25,7 +25,7 @@ void setup() {
   pinMode(buttonPin, INPUT);    // button as input
   digitalWrite(buttonPin, HIGH); // turns on pull-up resistor after input
 
-  Serial.begin(115200);
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -86,8 +86,9 @@ void loop() {
     digitalWrite(ledPin, LOW);
   if ((loop_counter++)%20)
     digitalWrite(ledPin, HIGH);
+    loop_counter = 1;
   
   // avoid static and bounce
-  delay(20);
+  delay(10);
 }
 
