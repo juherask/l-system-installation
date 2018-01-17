@@ -9,27 +9,40 @@
 from pygame import *
 import math
 from random import choice, randint, gammavariate 
+from collections import OrderedDict
 
 import threading
 import serial
 import pygame
 
+SCREEN_SIZE = (720,1280)
+GROWTH_SPEED = 1.02
+VERY_GREEN = (50,225,50)
+
+POT_JITTER_PREVENTION = 3
 
 MAX_WIND_STRENGTH = 5
 MAX_ANGLE = 120
-MAX_SIZE = 30  
-MAX_ITERATIONS_TIMES = 2  
+MAX_SIZE = 500  
+MAX_ITERATIONS_TIMES = 1.5 
 
 running = False
-port = '/dev/ttyUSB0'
-baud = 9600
-serial_port = serial.Serial(port, baud, timeout=0.01)
+try:
+    port = '/dev/ttyUSB0'
+    baud = 115200
+    serial_port = serial.Serial(port, baud, timeout=0.01)
+except:
+    print "No serial connection to", port
+    serial_port = None
 
 process_cmd = 0
 parameter_values = [512]*4
 parameter_string = "Not yet recieved any"
 
 def read_from_port(ser):
+    if ser==None:
+        return
+        
     global parameter_values, process_cmd, running
     try:
         while running:
@@ -53,9 +66,9 @@ MAX_PLANT_SYSTEM_SIZE = 500000
 def get_predefined_system(system_nbr):
     if system_nbr==1:
         # Pythagoras Tree
-        rules = {
-          "F":"FF",
-          "X":"F[+X]-X"}
+        rules = OrderedDict([
+          ("F","FF"),
+          ("X","F<+X>-X")])
         start = "X"
         size = 7
         iterations = 6
@@ -63,45 +76,48 @@ def get_predefined_system(system_nbr):
     elif system_nbr==2:
         # Wikipedia Tree (Tree F)
         start = "X"
-        rules = {
-          "X":"F-[[X]+X]+F[+FX]-X",
-          "F":"FF"}
+        rules = OrderedDict([
+          ("X","F-<<X>+X>+F<+FX>-X"),
+          ("F","FF")])
         size = 10
         iterations = 4
     
     elif system_nbr==3:
         # Tree A
         start = "F"
-        rules = {
-          "F":"F[+F]F[-F]F"}
+        rules = OrderedDict([("F","F<+F>F<-F>F")])
         size = 5
         iterations = 4
     
     elif system_nbr==4:
         # Tree B
         start = "F"
-        rules = {"F":"F[+F]F[-F][F]"}
+        rules = OrderedDict([("F","F<+F>F<-F><F>")])
         size = 7
         iterations = 5
     
     elif system_nbr==5:
         # Tree C
         start = "F"
-        rules = {"F":"FF-[-F+F+F]+[+F-F-F]"}
+        rules = OrderedDict([("F","FF-<-F+F+F>+<+F-F-F>")])
         size = 7
         iterations = 4
     
     elif system_nbr==6:
         # Tree D
         start = "X"
-        rules = {"F":"FF", "X":"F[+X]F[-X]+X" }
+        rules = OrderedDict([
+            ("F","FF"),
+            ("X","F<+X>F<-X>+X")])
         size = 2
         iterations = 7
     
     elif system_nbr==7:
         # Tree E
         start = "X"
-        rules = {"F":"FF", "X":"F[+X][-X]FX"}
+        rules = OrderedDict([
+            ("F","FF"),
+            ("X","F<+X><-X>FX")])
         size = 2
         iterations = 7
         
@@ -124,10 +140,10 @@ def generate_random_system():
             # we let the rulette choose from the tail also 
             #  to increase the probability of pop to avoid
             #  all the pops happen at the tail
-            nextsym = choice(["X","F","+","-","[","]"]+tail)
-            if nextsym=="[":
-                tail.append("]")
-            elif nextsym=="]":
+            nextsym = choice(["X","F","+","-","<",">"]+tail)
+            if nextsym=="<":
+                tail.append(">")
+            elif nextsym==">":
                 if len(tail)>0:
                     tail = tail[:-1]
                 else:
@@ -141,7 +157,7 @@ def generate_random_system():
         while not prevto or len(prevto)>len(tosym):
             print "try"
             prevto=tosym
-            tosym = tosym.replace("[]","")
+            tosym = tosym.replace("<>","")
         
         rules[fromsym]=tosym
 
@@ -165,30 +181,32 @@ def grow_Lsystem(start, rules, depth):
 
 # define a function that is used to plot
 def draw_Lsystem(instructions, angle, surface, start=(100,100),
-                 base_length=10,
+                 base_length=10, age=1.0,
                  wind_strength=1.0, branch_momentum=1.05, wind_phase=0.0):
-    cur_pos, cur_angle = (start, -90)
+    cur_pos, cur_angle, cur_level = (start, -90, 1)
     stack = []
-    stack.append( (cur_pos, cur_angle) )
+    stack.append( (cur_pos, cur_angle, cur_level) )
 
     for cmd in instructions:
         depth = len(stack)
         angle_offset = wind_strength*depth*\
                         math.sin(wind_phase+depth*branch_momentum)
         if cmd=="F":
-            dx = math.cos(cur_angle/360.0*2*math.pi)*base_length
-            dy = math.sin(cur_angle/360.0*2*math.pi)*base_length
+            branch_length = base_length*(age)
+            dx = math.cos(cur_angle/360.0*2*math.pi)*branch_length
+            dy = math.sin(cur_angle/360.0*2*math.pi)*branch_length
             end_pos = tuple(map(sum, zip(cur_pos,(dx,dy))))
-            draw.line( surface, (100,225,100), cur_pos, end_pos )
+            draw.line( surface, VERY_GREEN, cur_pos, end_pos, 2)
             cur_pos=end_pos
+            cur_level+=1
         elif cmd=="X":
             pass #leaf, nop
-        elif cmd=="[":
-            stack.append( (cur_pos, cur_angle) )
-        elif cmd=="]":
-            cur_pos, cur_angle = stack.pop()
+        elif cmd=="<":
+            stack.append( (cur_pos, cur_angle, cur_level) )
+        elif cmd==">":
+            cur_pos, cur_angle, cur_level = stack.pop()
             if len(stack)==0: # for robustness
-                stack.append( (cur_pos, cur_angle) )
+                stack.append( (cur_pos, cur_angle, cur_level) )
         elif cmd=="+":
             cur_angle+=angle+angle_offset
         elif cmd=="-":
@@ -204,10 +222,16 @@ def interactive_display(predefined_system_number):
 
     # Init pygame
     init()
-    screen = display.set_mode( (400,600) )
+    screen = display.set_mode( SCREEN_SIZE, pygame.DOUBLEBUF )
+    #screen = display.set_mode( (0,0), FULLSCREEN)
+    
     display.set_caption("L-Systems, press 1-7 to select")
  
-    myfont = pygame.font.SysFont("monospace", 15)
+    header_font = pygame.font.SysFont("freesans", 36)
+    rules_font = pygame.font.SysFont("freesans", 18)
+    
+    jy_logo = pygame.image.load("logos/jy.png").convert_alpha()
+    ucs_logo = pygame.image.load("logos/ucs.png").convert_alpha()
     
     start, rules, size, iterations = get_predefined_system(predefined_system_number)
     plant = grow_Lsystem(start, rules, iterations).replace("X","F")
@@ -218,17 +242,39 @@ def interactive_display(predefined_system_number):
     wind_strength = 1.5
     angle = 25
     size = 10
+    age = 0.1
+    
+    prev_size_pot_value = 0
     
     while True:
-        label = myfont.render(parameter_string, 1, (0,0,0))
-        screen.blit(label, (100, 100))
-        pygame.display.flip()
 
         for ev in event.get():
             if ev.type == QUIT:
                 running = False
                 sys.exit()
             if ev.type == KEYDOWN:
+                if ev.key == K_q or ev.key == K_ESCAPE:
+                    running = False
+                    sys.exit()
+                if ev.key == K_m:
+                    mrf = open("manual_rules.txt", "r")
+                    first_line = True
+                    rules = OrderedDict()
+                    for l in mrf.readlines():
+                        l = l.strip().upper()
+                        if l!="" and first_line:
+                            start = l[0]
+                            first_line = False
+                        parts = l.split()
+                        if len(parts)==2:
+                            rules[parts[0]]=parts[1].strip()
+                            print "read rule", l
+                        else:
+                            print "Invalid manual rule file line", l
+                    print
+                    base_iterations = 4
+                    prev_iterations = 4
+                    
                 if ev.key == K_1:
                     start, rules, size, iterations = get_predefined_system(1)
                 if ev.key == K_2:
@@ -253,6 +299,7 @@ def interactive_display(predefined_system_number):
                 
                 base_iterations = iterations
                 prev_iterations = iterations
+                age = 0.1
         
         # a command from the serial!        
         if process_cmd!=0:
@@ -261,23 +308,69 @@ def interactive_display(predefined_system_number):
                                             for pv in parameter_values)
             process_cmd = 0
             
-            wind_strength = (parameter_values[0]/1024.0)*MAX_WIND_STRENGTH
-            angle = (parameter_values[1]/1024.0)*MAX_ANGLE
-            size = (parameter_values[2]/1024.0)*MAX_SIZE
-            iterations = int((parameter_values[3]/1024.0)*
+            if cmd=="n":
+                #todo: read the state with ocr
+                age = 0.1
+                
+            iterations = 1+int((1.0-parameter_values[3]/1024.0)*
+                                base_iterations*MAX_ITERATIONS_TIMES)
+            alt1_iterations = 1+int((1.0-(parameter_values[3]+POT_JITTER_PREVENTION)/1024.0)*
+                                base_iterations*MAX_ITERATIONS_TIMES)
+            alt2_iterations = 1+int((1.0-(parameter_values[3]-POT_JITTER_PREVENTION)/1024.0)*
                                 base_iterations*MAX_ITERATIONS_TIMES)
             
-            if prev_iterations!=iterations:
-                plant = grow_Lsystem(start, rules, iterations).replace("X","F")
-                prev_iterations = iterations
-                
+            if (alt1_iterations==iterations==alt2_iterations):
+                if prev_iterations!=iterations:
+                    plant = grow_Lsystem(start, rules, iterations).replace("X","F")
+                    prev_iterations = iterations
+                    age = 0.1
+            else:
+                # The value is borderline one or another, keep the current
+                iterations = prev_iterations
+            
+            wind_strength = (1.0-parameter_values[0]/1024.0)*MAX_WIND_STRENGTH
+            angle = (parameter_values[1]/1024.0)*MAX_ANGLE 
+            
+            # prevent jitter
+            new_size_pot_value = parameter_values[2]
+            if abs(prev_size_pot_value-new_size_pot_value)>POT_JITTER_PREVENTION:
+                size = (1.0-new_size_pot_value/1024.0)*MAX_SIZE/(iterations**2)
+            
+                    
         # Empty screen
         screen.fill(color.THECOLORS["black"])
+        
+        # Render header text
+        header_label_a = header_font.render("VIRTUAALIKASVIEN", 1, VERY_GREEN)
+        header_label_b = header_font.render("KASVATTAMO", 1, VERY_GREEN)
+        screen.blit(header_label_a,
+            (SCREEN_SIZE[0]/2-header_label_a.get_width()/2-20,28))
+        screen.blit(header_label_b,
+            (SCREEN_SIZE[0]/2-header_label_b.get_width()/2-20,
+             28+header_label_a.get_height()*1.1))
+             
+        # Render rules text
+        
+        row_counter = 1
+        for from_r, to_r in reversed(rules.items()):
+            rules_row_label = rules_font.render(from_r+":"+to_r, 1, VERY_GREEN)
+            screen.blit(rules_row_label,
+                (21,SCREEN_SIZE[1]-21-rules_row_label.get_height()*1.1*row_counter))
+            row_counter+=1
+        
   
         # Plot plant
-        draw_Lsystem(plant, angle, screen, (200,590), size,
+        start_pos = (SCREEN_SIZE[0]/2,SCREEN_SIZE[1]*6/7)
+        draw_Lsystem(plant, angle, screen, start_pos, size, age,
             wind_strength=wind_strength, wind_phase=wind_phase)
         wind_phase+=0.01*wind_strength
+        age*=GROWTH_SPEED
+        if age>=1.0:
+            age = 1.0
+            
+        screen.blit(jy_logo, pygame.rect.Rect(10,10, 77, 105))
+        screen.blit(ucs_logo, pygame.rect.Rect(SCREEN_SIZE[0]-110-10,10, 110, 105))
+        
         display.flip()
         
 

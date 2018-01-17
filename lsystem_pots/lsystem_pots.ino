@@ -9,8 +9,8 @@ int value_buffer_idxs[4]={0,0,0,0};
 float moving_averages[4]={0.0f,0.0f,0.0f,0.0f};
 
 bool button_down = false;
-bool button_update_sent = false;
-unsigned long button_down_time;
+
+int loop_counter = 0;
 
 void setup() {
   pinMode(ledPin, OUTPUT);  // declare the ledPin as an OUTPUT
@@ -18,7 +18,7 @@ void setup() {
   pinMode(buttonPin, INPUT);    // button as input
   digitalWrite(buttonPin, HIGH); // turns on pull-up resistor after input
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {
@@ -38,23 +38,16 @@ void loop() {
       moving_averages[i]+=(float)value_buffers[i][j]/(float)MOVING_AVERAGE_LENGTH;
   }
 
-  bool print_values = false;
+  bool print_values = true;
+  bool print_new_values = false;
+  // LOW = button pressed
   if (digitalRead(buttonPin) == LOW)
   {
     if (!button_down)
     {
-      button_down_time = millis();
+      print_new_values = true;
     }
-    else if (millis()-button_down_time>1000)
-    {
-      button_down_time+=200;
-      button_update_sent=true;
-      
-      // update command
-      Serial.print("u");
-      print_values=true;
-    }
-      
+ 
     // button was pressed (or is pressed)
     button_down = true;
   }
@@ -62,18 +55,16 @@ void loop() {
   {
     // button was released
     button_down = false;
-
-    if (!button_update_sent)
-    {
-      // redraw command
-      Serial.print("n");
-      print_values = true;
-    }
-    button_update_sent = false;
+    print_new_values = true;
   }
 
-  if (print_values)
+  if (print_new_values || (print_values && (loop_counter++)%10==1))
   {
+    if (print_new_values)
+      Serial.print("n");
+    else
+      Serial.print("u");
+    
     for(int i=0; i<4; i++)
     {
       Serial.print(";");
@@ -86,6 +77,6 @@ void loop() {
   }
   
   // avoid static and bounce
-  delay(50);
+  delay(10);
 }
 
