@@ -10,7 +10,7 @@ def show_webcam(mirror=False):
             img = cv2.flip(img, 1)
         cv2.imshow('my webcam', img)
         
-        key = cv2.waitKey(1)
+        key = cv2.waitKey(100)&255
         if key == 27: 
             break  # esc to quit
         if key == ord("p"):

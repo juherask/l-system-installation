@@ -15,7 +15,7 @@ import threading
 import serial
 import pygame
 
-SCREEN_SIZE = (720,1280)
+SCREEN_SIZE = (800,1260)
 GROWTH_SPEED = 1.02
 VERY_GREEN = (50,225,50)
 
@@ -261,7 +261,7 @@ def interactive_display(predefined_system_number):
                     first_line = True
                     rules = OrderedDict()
                     for l in mrf.readlines():
-                        l = l.strip().upper()
+                        l = l.strip().replace(":", " ").upper()
                         if l!="" and first_line:
                             start = l[0]
                             first_line = False
@@ -353,7 +353,7 @@ def interactive_display(predefined_system_number):
         
         row_counter = 1
         for from_r, to_r in reversed(rules.items()):
-            rules_row_label = rules_font.render(from_r+":"+to_r, 1, VERY_GREEN)
+            rules_row_label = rules_font.render(from_r+" : "+to_r, 1, VERY_GREEN)
             screen.blit(rules_row_label,
                 (21,SCREEN_SIZE[1]-21-rules_row_label.get_height()*1.1*row_counter))
             row_counter+=1

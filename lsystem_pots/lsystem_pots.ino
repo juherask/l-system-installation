@@ -9,9 +9,16 @@ int value_buffer_idxs[4]={0,0,0,0};
 float moving_averages[4]={0.0f,0.0f,0.0f,0.0f};
 
 bool button_down = false;
+bool  print_new_values = false;
 
 int loop_counter = 0;
+int i=0;
+int j=0;
+int val=0;
+int out_len;
 
+char buffer[50];
+      
 void setup() {
   pinMode(ledPin, OUTPUT);  // declare the ledPin as an OUTPUT
 
@@ -22,10 +29,10 @@ void setup() {
 }
 
 void loop() {
-  for(int i=0; i<4; i++)
+  for(i=0; i<4; i++)
   {
     // read value
-    int val = analogRead(i);
+    val = analogRead(i);
     value_buffers[i][value_buffer_idxs[i]] = val;
     
     value_buffer_idxs[i]++;
@@ -34,12 +41,11 @@ void loop() {
 
     //update the average
     moving_averages[i] = 0.0f;
-    for(int j=0; j<MOVING_AVERAGE_LENGTH ; j++)
+    for(j=0; j<MOVING_AVERAGE_LENGTH ; j++)
       moving_averages[i]+=(float)value_buffers[i][j]/(float)MOVING_AVERAGE_LENGTH;
   }
-
-  bool print_values = true;
-  bool print_new_values = false;
+  
+  print_new_values = false;
   // LOW = button pressed
   if (digitalRead(buttonPin) == LOW)
   {
@@ -58,25 +64,30 @@ void loop() {
     print_new_values = true;
   }
 
-  if (print_new_values || (print_values && (loop_counter++)%10==1))
+  if (print_new_values || (loop_counter++)%10==1)
   {
     if (print_new_values)
       Serial.print("n");
     else
       Serial.print("u");
     
-    for(int i=0; i<4; i++)
+    for(i=0; i<4; i++)
     {
+      
       Serial.print(";");
-      char buffer[50];
-      int out_len=sprintf (buffer, "%04d", (int)moving_averages[i]);
-      for(int l= 0; l<=out_len-1; l++) 
-        Serial.print(buffer[l]);
+      out_len=sprintf (buffer, "%04d", (int)moving_averages[i]);
+      for(j = 0; j<=out_len-1; j++) 
+        Serial.print(buffer[j]);
     }
     Serial.println();
   }
   
+  if ((loop_counter++)%10)
+    digitalWrite(ledPin, LOW);
+  if ((loop_counter++)%20)
+    digitalWrite(ledPin, HIGH);
+  
   // avoid static and bounce
-  delay(10);
+  delay(20);
 }
 
