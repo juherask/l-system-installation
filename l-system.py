@@ -15,6 +15,8 @@ import threading
 import serial
 import pygame
 
+import read_ocr
+
 SCREEN_SIZE = (800,1260)
 GROWTH_SPEED = 1.02
 VERY_GREEN = (50,225,50)
@@ -42,6 +44,11 @@ process_cmd = 0
 parameter_values = [512]*4
 parameter_string = "Not yet recieved any"
 
+def read_rules_from_webcam(ocr_clf):
+    cam = cv2.VideoCapture(1)
+    ret_val, im = cam.read()
+    cam.release()
+        
 def read_from_port(ser):
     if ser==None:
         return
@@ -220,6 +227,8 @@ def draw_Lsystem(instructions, angle, surface, start=(100,100),
 
 def interactive_display(predefined_system_number):
     global parameter_string, process_cmd, running
+    
+    ocr_clf = read_ocr.create_block_classifier_model()
         
     # Start a thread that reads physical controls (over serial)
     serial_port = open_serial()
@@ -324,7 +333,14 @@ def interactive_display(predefined_system_number):
             process_cmd = 0
             
             if cmd=="n":
-                #todo: read the state with ocr
+                cam = cv2.VideoCapture(1)
+                ret_val, img = cam.read()
+                cam.release()
+                #img = cv2.flip(img, 1)
+                
+                detection_results = read_ocr.detect_from_image(img, ocr_clf)
+                rules = read_ocr.detection_results_to_rules(detection_results)
+                
                 age = 0.1
                 
             iterations = 1+int((1.0-parameter_values[3]/1024.0)*

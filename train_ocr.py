@@ -1,11 +1,17 @@
 import cv2
 import numpy as np
 import sys
+from os import path
 
-MAX_CHAR_SIZE_IN_PIX = 60
-MIN_CHAR_NARROW_SIZE_IN_PIX = 10
-MIN_CHAR_WIDE_SIZE_IN_PIX = 30
+MIN_CHAR_BB_AREA = 20
+MAX_CHAR_BB_AREA = 800
+MAX_CHAR_SIZE_IN_PIX = 40
+MIN_CHAR_NARROW_SIZE_IN_PIX = 8
+MIN_CHAR_WIDE_SIZE_IN_PIX = 20
 
+# if none, use camera
+img_source_folder = None
+img_source_folder = "trainingdata"
 
 def threshold_img(blur):
     #ret,thresh = cv2.threshold(blur,60,255,cv2.THRESH_BINARY)
@@ -15,7 +21,34 @@ def threshold_img(blur):
     thresh = cv2.erode(thresh, kernel, iterations=2)
     return thresh
     
-def boundig_square(brect):
+def is_candidate_number_contour(cnt):
+    carea = cv2.contourArea(cnt)
+    if carea>MIN_CHAR_BB_AREA and carea<MAX_CHAR_BB_AREA:
+        brect = cv2.boundingRect(cnt)
+        x,y,w,h = brect
+        
+        #feature = gray[sy:sy+sw, sx:sx+sw]
+        #max_fw = np.max(feature)
+        #feature_edges = cv2.Canny(feature,max_fw-20,max_fw)
+        #borderism = np.count_nonzero(feature_edges)/float(sw*sw)
+        #out_gray[sy:sy+sw, sx:sx+sw] = feature_edges
+        
+        large_enough = (w>MIN_CHAR_NARROW_SIZE_IN_PIX and
+                       h>MIN_CHAR_NARROW_SIZE_IN_PIX)
+        not_too_big = (w<MAX_CHAR_SIZE_IN_PIX and
+                       h<MAX_CHAR_SIZE_IN_PIX)
+        rect_letter = (w>MIN_CHAR_WIDE_SIZE_IN_PIX and
+                       h<MIN_CHAR_WIDE_SIZE_IN_PIX)
+        thin_horiz = (w>MIN_CHAR_WIDE_SIZE_IN_PIX and
+                       h>MIN_CHAR_NARROW_SIZE_IN_PIX)
+        thin_vert = (h>MIN_CHAR_WIDE_SIZE_IN_PIX and
+                       w>MIN_CHAR_NARROW_SIZE_IN_PIX)
+        if (large_enough and not_too_big) and\
+           (rect_letter or thin_horiz or thin_vert):
+            return True
+    return False
+    
+def bounding_square(brect):
     x,y,w,h = brect
     if w>h:
         sw = w
@@ -32,11 +65,23 @@ def teach_webcam():
     rejected =  np.empty((0,100))
     responses = []
     exiting = False
+    
+    if img_source_folder!=None:
+        import glob
+        img_file_names = list(glob.glob(path.join(img_source_folder,'*')))
+        img_file_names.sort()
+        img_file_idx = 0
         
     while True:
-        cam = cv2.VideoCapture(1)
-        ret_val, im = cam.read()
-        cam.release()
+        if img_source_folder==None:
+            cam = cv2.VideoCapture(1)
+            ret_val, im = cam.read()
+            cam.release()
+        else:
+            img_file_idx+=1
+            if img_file_idx==len(img_file_names):
+                img_file_idx = 0
+            im = cv2.imread(img_file_names[img_file_idx])
 
         gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(gray,(5,5),0)
@@ -54,58 +99,38 @@ def teach_webcam():
 
         
         for cnt in contours:
-            if cv2.contourArea(cnt)>50:
+            if is_candidate_number_contour(cnt):
                 brect = cv2.boundingRect(cnt)
                 x,y,w,h = brect
-                
-                bsquare = boundig_square(brect)
+                bsquare = bounding_square(brect)
                 sx,sy,sw,sh = bsquare
                 
-                #feature = gray[sy:sy+sw, sx:sx+sw]
-                #max_fw = np.max(feature)
-                #feature_edges = cv2.Canny(feature,max_fw-20,max_fw)
-                #borderism = np.count_nonzero(feature_edges)/float(sw*sw)
-                #out_gray[sy:sy+sw, sx:sx+sw] = feature_edges
+                #cv2.rectangle(im,(x,y),(x+w,y+h),(0,0,255),2)
+                cv2.rectangle(im,(sx,sy),(sx+sw,sy+sh),(0,255,0),2)
                 
-                large_enough = (w>MIN_CHAR_NARROW_SIZE_IN_PIX and
-                               h>MIN_CHAR_NARROW_SIZE_IN_PIX)
-                not_too_big = (w<MAX_CHAR_SIZE_IN_PIX and
-                               h<MAX_CHAR_SIZE_IN_PIX)
-                rect_letter = (w>MIN_CHAR_WIDE_SIZE_IN_PIX and
-                               h<MIN_CHAR_WIDE_SIZE_IN_PIX)
-                thin_horiz = (w>MIN_CHAR_WIDE_SIZE_IN_PIX and
-                               h>MIN_CHAR_NARROW_SIZE_IN_PIX)
-                thin_vert = (h>MIN_CHAR_WIDE_SIZE_IN_PIX and
-                               w>MIN_CHAR_NARROW_SIZE_IN_PIX)
-                if (large_enough and not_too_big) and\
-                   (rect_letter or thin_horiz or thin_vert):
+                try:
+                    roi = thresh[sy:sy+sh,sx:sx+sw]
+                    roismall = cv2.resize(roi,(10,10))
+                    cv2.imshow('norm',im)
+                    key = cv2.waitKey(0)
                     
-                    #cv2.rectangle(im,(x,y),(x+w,y+h),(0,0,255),2)
-                    cv2.rectangle(im,(sx,sy),(sx+sw,sy+sh),(0,255,0),2)
+                    if key == 27:  # (escape to quit)
+                        exiting = True
+                        break
                     
-                    try:
-                        roi = thresh[sy:sy+sh,sx:sx+sw]
-                        roismall = cv2.resize(roi,(10,10))
-                        cv2.imshow('norm',im)
-                        key = cv2.waitKey(0)
-                        
-                        if key == 27:  # (escape to quit)
-                            exiting = True
-                            break
-                        
-                        if chr(key)!=" ":
-                            print x,y,w,h,chr(key)
-                                                        
-                            if key>=48 and key<=122:
-                                responses.append(ord(chr(key)))
-                                sample = roismall.reshape((1,100))
-                                samples = np.append(samples,sample,0)
-                        else:
+                    if chr(key)!=" ":
+                        print x,y,w,h,chr(key)
+                                                    
+                        if key>=48 and key<=122:
+                            responses.append(ord(chr(key)))
                             sample = roismall.reshape((1,100))
-                            rejected = np.append(rejected,sample,0)
-                            
-                    except:
-                        pass
+                            samples = np.append(samples,sample,0)
+                    else:
+                        sample = roismall.reshape((1,100))
+                        rejected = np.append(rejected,sample,0)
+                        
+                except:
+                    pass
         if exiting:
             break
             
