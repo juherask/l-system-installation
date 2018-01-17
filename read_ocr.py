@@ -50,7 +50,7 @@ def create_block_classifier_model():
     return ocr_clf 
 
 def detect_from_image(img, ocr_clf):
-    gray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     thresh = threshold_img(gray)
 
     contours,hierarchy = cv2.findContours(thresh,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
@@ -62,7 +62,7 @@ def detect_from_image(img, ocr_clf):
             bsquare = bounding_square(brect)
             sx,sy,sw,sh = bsquare
             
-            cv2.rectangle(im,(sx,sy),(sx+sw,sy+sh),(0,255,0),2)
+            #cv2.rectangle(im,(sx,sy),(sx+sw,sy+sh),(0,255,0),2)
             
             try:
                 roi = thresh[sy:sy+sh,sx:sx+sw]

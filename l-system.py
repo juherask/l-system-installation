@@ -14,6 +14,7 @@ from collections import OrderedDict
 import threading
 import serial
 import pygame
+import cv2
 
 import read_ocr
 
@@ -316,7 +317,19 @@ def interactive_display(predefined_system_number):
                 if ev.key == K_r:
                     start, rules, size, iterations = generate_random_system()
                     print start, rules, size, iterations 
+                if ev.key == K_p:
+                    cam = cv2.VideoCapture(1)
+                    ret_val, img = cam.read()
+                    cam.release()
+                    #img = cv2.flip(img, 1)
                     
+                    detection_results = read_ocr.detect_from_image(img, ocr_clf)
+                    start, rules = read_ocr.detection_results_to_rules(detection_results)
+                    
+                    print "start", start
+                    for rule_from, rule_to in rules.items():
+                        print rule_from, ":", rule_to 
+                        
                 # Grow plant in case system changed
                 plant = grow_Lsystem(start, rules, iterations).replace("X","F")
                 print len(plant)
@@ -339,7 +352,13 @@ def interactive_display(predefined_system_number):
                 #img = cv2.flip(img, 1)
                 
                 detection_results = read_ocr.detect_from_image(img, ocr_clf)
-                rules = read_ocr.detection_results_to_rules(detection_results)
+                start, rules = read_ocr.detection_results_to_rules(detection_results)
+                
+                print "start", start
+                for rule_from, rule_to in rules.items():
+                    print rule_from, ":", rule_to 
+                
+                
                 
                 age = 0.1
                 
