@@ -90,7 +90,7 @@ def detection_results_to_rules(detection_results):
         row_it_belongs_to = None
         for row in rows:
             row_y, row_l = row
-            if abs(row_y-y)<MAX_CHAR_SIZE_IN_PIX:
+            if abs(row_y-y)<(MAX_CHAR_SIZE_IN_PIX/2):
                 row_it_belongs_to = row
                 break
         
@@ -101,13 +101,14 @@ def detection_results_to_rules(detection_results):
             row_it_belongs_to[0] = sum(lr[1] for lr in row_it_belongs_to[1])\
                                    /float(len(row_it_belongs_to[1]))
     
-    rows.sort()
+    rows.sort(reverse=True)
     
     rules = OrderedDict()
     start = None
     for _, row_l  in rows:
         if len(row_l)==1:
-            start = label_map[row_l[0][2]]
+            #start = label_map[row_l[0][2]]
+            pass
         else:
             _,_,first_s=row_l[0]
             rule_from = label_map[first_s]
