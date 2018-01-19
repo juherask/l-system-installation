@@ -15,6 +15,7 @@ import threading
 import serial
 import pygame
 import cv2
+import os
 
 import read_ocr
 
@@ -262,6 +263,7 @@ def interactive_display(predefined_system_number):
     age = 0.1
     
     prev_size_pot_value = 0
+    img_idx = 0
     
     while True:
 
@@ -323,12 +325,32 @@ def interactive_display(predefined_system_number):
                     cam.release()
                     #img = cv2.flip(img, 1)
                     
+                    # press p to take a [p]icture and save it
+                    while True:
+                        imfile_name = "wrong%03d.png"%img_idx
+                        if not os.path.isfile(imfile_name):
+                            break
+                        img_idx+=1
+                    
                     detection_results = read_ocr.detect_from_image(img, ocr_clf)
                     start, rules = read_ocr.detection_results_to_rules(detection_results)
                     
                     print "start", start
                     for rule_from, rule_to in rules.items():
-                        print rule_from, ":", rule_to 
+                        print rule_from, ":", rule_to
+                    
+                    ocrd_result_file = open(imfile_name.replace(".png", "_ocr.txt"), "w")
+                    for x,y,s in detection_results:
+                        ocrd_result_file.write(str(x))
+                        ocrd_result_file.write(",")
+                        ocrd_result_file.write(str(y))
+                        ocrd_result_file.write(",")
+                        ocrd_result_file.write(s)
+                        ocrd_result_file.write("\n")
+                    ocrd_result_file.close()
+                    
+                    cv2.imwrite(imfile_name,img)
+                    print "Stored image", imfile_name
                         
                 # Grow plant in case system changed
                 plant = grow_Lsystem(start, rules, iterations).replace("X","F")
@@ -354,13 +376,18 @@ def interactive_display(predefined_system_number):
                 detection_results = read_ocr.detect_from_image(img, ocr_clf)
                 start, rules = read_ocr.detection_results_to_rules(detection_results)
                 
-                print "start", start
-                for rule_from, rule_to in rules.items():
-                    print rule_from, ":", rule_to 
-                
-                
-                
-                age = 0.1
+                if start!=None:
+                    print "start", start
+                    for rule_from, rule_to in rules.items():
+                        print rule_from, ":", rule_to 
+                    
+                    plant = grow_Lsystem(start, rules, iterations).replace("X","F")
+                    print len(plant)
+                    
+                    base_iterations = 3
+                    prev_iterations = iterations
+                    
+                    age = 0.1
                 
             iterations = 1+int((1.0-parameter_values[3]/1024.0)*
                                 base_iterations*MAX_ITERATIONS_TIMES)
