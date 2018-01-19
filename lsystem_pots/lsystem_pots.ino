@@ -64,7 +64,8 @@ void loop() {
     print_new_values = true;
   }
 
-  if (print_new_values || (loop_counter++)%10==1)
+  loop_counter++;
+  if (print_new_values || loop_counter%10==0)
   {
     if (print_new_values)
       Serial.print("n");
@@ -82,11 +83,15 @@ void loop() {
     Serial.println();
   }
   
-  if ((loop_counter++)%10)
+  if (loop_counter%10==0)
+  {
     digitalWrite(ledPin, LOW);
-  if ((loop_counter++)%20)
+  }
+  if (loop_counter%20==0)
+  {
     digitalWrite(ledPin, HIGH);
     loop_counter = 1;
+  }
   
   // avoid static and bounce
   delay(10);
