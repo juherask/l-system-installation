@@ -16,6 +16,9 @@ To build one you need following elements and things:
 
 Unfortunately I have no detailed plans, but feel free to consult following photo. 
 
+![photo](https://raw.githubusercontent.com/juherask/l-system-installation/master/photos/1st_setup.jpg "Installation at Tietoprovinssi")
+
+
 
 
 There are three Python scripts in the repository:
