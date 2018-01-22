@@ -7,8 +7,9 @@ To build one you need following elements and things:
 1. A custom made table with a part of the table top being transparent. Preferably there are slots where the blocks fit with some slack.
 1. 4 potentiometers and one on/off type switch and an Arduino to read the values and send the readings to the PC via USB-serial. Source code for the Arduino is in `lsystem_pots`.
   1. First pot adjusts how many rewrite iterations are applied with the current set of rules.
-  1. First pot adjusts how many rewrite iterations are applied with the current set of rules.
-  
+  1. Second pot adjusts the length of each `F` draw command.
+  1. Third pot adjusts the angle of `-` and `+` commands.
+  1. Fourth pot adjusts the strength of the wind effect.
 1. A PC with Python 2.7, PyGame, OpenCV and Arduino IDE installed. I used Ubuntu Linux 16.04 LTS.
 1. A monitor or a flat TV and some way of fixing it in portrait mode.
 1. USB webcam and a light source and a adjustable mount to hold it them position under the table. I used a PS3 PlayStation Eye camera and an 220V LED spot.
