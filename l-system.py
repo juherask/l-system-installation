@@ -323,7 +323,6 @@ def interactive_display(predefined_system_number):
                     cam = cv2.VideoCapture(1)
                     ret_val, img = cam.read()
                     cam.release()
-                    #img = cv2.flip(img, 1)
                     
                     # press p to take a [p]icture and save it
                     while True:
@@ -348,6 +347,7 @@ def interactive_display(predefined_system_number):
                         ocrd_result_file.write(s)
                         ocrd_result_file.write("\n")
                     ocrd_result_file.close()
+                    iterations = 3
                     
                     cv2.imwrite(imfile_name,img)
                     print "Stored image", imfile_name
@@ -371,7 +371,6 @@ def interactive_display(predefined_system_number):
                 cam = cv2.VideoCapture(1)
                 ret_val, img = cam.read()
                 cam.release()
-                #img = cv2.flip(img, 1)
                 
                 detection_results = read_ocr.detect_from_image(img, ocr_clf)
                 start, rules = read_ocr.detection_results_to_rules(detection_results)
@@ -408,7 +407,7 @@ def interactive_display(predefined_system_number):
             wind_strength = (1.0-parameter_values[0]/1024.0)*MAX_WIND_STRENGTH
             angle = (parameter_values[1]/1024.0)*MAX_ANGLE 
             
-            # prevent jitter
+            # prevent pot jitter
             new_size_pot_value = parameter_values[2]
             if abs(prev_size_pot_value-new_size_pot_value)>POT_JITTER_PREVENTION:
                 size = (1.0-new_size_pot_value/1024.0)*MAX_SIZE/(iterations**2)

@@ -1,14 +1,11 @@
 import cv2
 import numpy as np
-from train_ocr import threshold_img, bounding_square, is_candidate_number_contour
 from os import path
 from collections import OrderedDict
-
 from sklearn.ensemble import RandomForestClassifier
 
-MAX_CHAR_SIZE_IN_PIX = 60
-MIN_CHAR_NARROW_SIZE_IN_PIX = 10
-MIN_CHAR_WIDE_SIZE_IN_PIX = 30
+from train_ocr import threshold_img, bounding_square,\
+                      is_candidate_number_contour,MAX_CHAR_SIZE_IN_PIX
 
 # if none, use camera
 img_source_folder = None
@@ -29,9 +26,9 @@ label_map = {
 
 def create_block_classifier_model():
     #######   training part    ############### 
-    samples = np.loadtxt('tietoprovinssi2/samples.data',np.float32)
-    rejected = np.loadtxt('tietoprovinssi2/rejected.data',np.float32)
-    responses = np.loadtxt('tietoprovinssi2/responses.data',np.float32)
+    samples = np.loadtxt('labeled_data/samples.data',np.float32)
+    rejected = np.loadtxt('labeled_data/rejected.data',np.float32)
+    responses = np.loadtxt('labeled_data/responses.data',np.float32)
     responses = responses.reshape((responses.size,1))
 
     #reject_samples = np.append(samples, rejected)
