@@ -12,7 +12,7 @@ To build one you need to get and build following things:
   1. Fourth pot adjusts the strength of the wind effect.
 1. A PC with Python 2.7, PyGame, OpenCV and Arduino IDE installed. I used Ubuntu Linux 16.04 LTS.
 1. A monitor or a flat TV and some way of fixing it in portrait mode.
-1. USB webcam and a light source and a adjustable mount to hold it them position under the table. I used a PS3 PlayStation Eye camera and an 220V LED spot.
+1. USB webcam and a light source and a adjustable mount to hold it them position under the table. I used PS3 PlayStation Eye camera and an 220V LED spot.
 
 Unfortunately I have no detailed plans, but feel free to consult following photo. 
 
@@ -24,7 +24,7 @@ Unfortunately I have no detailed plans, but feel free to consult following photo
 There are three Python scripts in the repository:
 * `l-system.py` which is the main application. It opens a PyGame window to display the plant, reads the parameter values from the USB-serial and can be used to control the application.
   * Keys `[ESC]` and `[Q]` exit the application.
-  * Keys `[1]` to `[7]` intializes one of the predefined L-Systems.
+  * Keys `[1]` to `[7]` intialize one of the predefined L-Systems.
   * Key `[M]` reads a L-System from a file `manual_rules.txt`. Can be used to override the recognized system if OCR fails.
   * Key `[P]` takes a picture using the webcam, saves it on the disk and and detects the symbols on the table using the funcionality in `read_ocr.py`.
   * Also toggling the button connected to the Arduino will send a command which takes a picture and tries to recognize the system from it.
